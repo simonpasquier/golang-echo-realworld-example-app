@@ -11,6 +11,7 @@ require (
 	github.com/labstack/echo/v4 v4.1.5
 	github.com/labstack/gommon v0.2.8
 	github.com/leodido/go-urn v1.1.0 // indirect
+	github.com/prometheus/client_golang v1.1.0
 	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529

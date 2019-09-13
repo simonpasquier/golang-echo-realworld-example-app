@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/xesina/golang-echo-realworld-example-app/db"
 	"github.com/xesina/golang-echo-realworld-example-app/handler"
 	"github.com/xesina/golang-echo-realworld-example-app/router"
@@ -8,7 +9,12 @@ import (
 )
 
 func main() {
-	r := router.New()
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+		prometheus.NewGoCollector(),
+	)
+	r := router.New(reg)
 	v1 := r.Group("/api")
 
 	d := db.New()

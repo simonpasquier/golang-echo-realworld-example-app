@@ -1,14 +1,41 @@
 package router
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func New() *echo.Echo {
+const skipDurationMetric = "skipDurationMetric"
+
+func New(r *prometheus.Registry) *echo.Echo {
 	e := echo.New()
 	e.Logger.SetLevel(log.DEBUG)
+	duration := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "A histogram of latencies for requests.",
+			Buckets: []float64{.25, .5, 1, 2.5, 5, 10},
+		},
+		[]string{"code", "method"},
+	)
+	r.MustRegister(duration)
+	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			now := time.Now()
+			err := next(c)
+			if skip := c.Get(skipDurationMetric); skip != nil {
+				return err
+			}
+			duration.WithLabelValues(strconv.Itoa(c.Response().Status), c.Request().Method).Observe(time.Since(now).Seconds())
+			return err
+		}
+	})
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -16,6 +43,16 @@ func New() *echo.Echo {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
 	}))
+	e.GET("/metrics",
+		func(c echo.Context) error {
+			c.Set(skipDurationMetric, &struct{}{})
+			promhttp.InstrumentMetricHandler(
+				r,
+				promhttp.HandlerFor(r, promhttp.HandlerOpts{}),
+			).ServeHTTP(c.Response(), c.Request())
+			return nil
+		},
+	)
 	e.Validator = NewValidator()
 	return e
 }
