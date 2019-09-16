@@ -13,12 +13,13 @@ import (
 
 const skipDurationMetric = "_skipDurationMetric"
 
-func New(r *prometheus.Registry) *echo.Echo {
+func New(r *prometheus.Registry, namespace string) *echo.Echo {
 	duration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "http_request_duration_seconds",
-			Help:    "A histogram of latencies for HTTP requests.",
-			Buckets: []float64{.05, .1, .25, .5, .75, 1, 2, 5},
+			Namespace: namespace,
+			Name:      "http_request_duration_seconds",
+			Help:      "A histogram of latencies for HTTP requests.",
+			Buckets:   []float64{.05, .1, .25, .5, .75, 1, 2, 5},
 		},
 		[]string{"code", "method"},
 	)

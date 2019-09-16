@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/xesina/golang-echo-realworld-example-app/router"
 	"github.com/xesina/golang-echo-realworld-example-app/router/middleware"
@@ -17,7 +18,7 @@ import (
 func TestListArticlesCaseSuccess(t *testing.T) {
 	tearDown()
 	setup()
-	e := router.New()
+	e := router.New(prometheus.NewRegistry(), "test")
 	req := httptest.NewRequest(echo.GET, "/api/articles", nil)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()

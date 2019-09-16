@@ -10,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/labstack/echo/v4"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/xesina/golang-echo-realworld-example-app/article"
 	"github.com/xesina/golang-echo-realworld-example-app/db"
 	"github.com/xesina/golang-echo-realworld-example-app/model"
@@ -43,7 +44,7 @@ func setup() {
 	us = store.NewUserStore(d)
 	as = store.NewArticleStore(d)
 	h = NewHandler(us, as)
-	e = router.New()
+	e = router.New(prometheus.NewRegistry(), "test")
 	loadFixtures()
 }
 
