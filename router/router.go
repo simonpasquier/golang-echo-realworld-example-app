@@ -11,32 +11,32 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const skipDurationMetric = "skipDurationMetric"
+const skipDurationMetric = "_skipDurationMetric"
 
 func New(r *prometheus.Registry) *echo.Echo {
-	e := echo.New()
-	e.Logger.SetLevel(log.DEBUG)
 	duration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
-			Help:    "A histogram of latencies for requests.",
-			Buckets: []float64{.25, .5, 1, 2.5, 5, 10},
+			Help:    "A histogram of latencies for HTTP requests.",
+			Buckets: []float64{.05, .1, .25, .5, .75, 1, 2, 5},
 		},
 		[]string{"code", "method"},
 	)
 	r.MustRegister(duration)
+
+	e := echo.New()
+	e.Logger.SetLevel(log.DEBUG)
+	e.Pre(middleware.RemoveTrailingSlash())
 	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			now := time.Now()
 			err := next(c)
-			if skip := c.Get(skipDurationMetric); skip != nil {
-				return err
+			if skip := c.Get(skipDurationMetric); skip == nil {
+				duration.WithLabelValues(strconv.Itoa(c.Response().Status), c.Request().Method).Observe(time.Since(now).Seconds())
 			}
-			duration.WithLabelValues(strconv.Itoa(c.Response().Status), c.Request().Method).Observe(time.Since(now).Seconds())
 			return err
 		}
 	})
-	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
