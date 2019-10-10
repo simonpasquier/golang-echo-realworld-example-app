@@ -19,29 +19,26 @@ const (
 	opUpdate = "update"
 )
 
-func NewStoreMetrics(r *prometheus.Registry, namespace string) *StoreMetrics {
+func NewStoreMetrics(r prometheus.Registerer) *StoreMetrics {
 	total := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "store_operations_total",
-			Help:      "Total number of store operations.",
+			Name: "store_operations_total",
+			Help: "Total number of store operations.",
 		},
 		[]string{"operation"},
 	)
 	failed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "store_operations_failed_total",
-			Help:      "Total number of store operations that failed.",
+			Name: "store_operations_failed_total",
+			Help: "Total number of store operations that failed.",
 		},
 		[]string{"operation"},
 	)
 	duration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "realworld",
-			Name:      "store_operation_seconds",
-			Help:      "A histogram of latencies for store requests.",
-			Buckets:   []float64{.05, .1, .25, .5, .75, 1, 2, 5},
+			Name:    "store_operation_seconds",
+			Help:    "A histogram of latencies for store requests.",
+			Buckets: []float64{.05, .1, .25, .5, .75, 1, 2, 5},
 		},
 		[]string{"operation"},
 	)

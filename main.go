@@ -9,17 +9,22 @@ import (
 	"github.com/xesina/golang-echo-realworld-example-app/store"
 )
 
-const appName = "realworld"
-
 // These variables are injected at build time.
 var appVersion, appRevision, appBranch string
 
 func main() {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+		prometheus.NewGoCollector(),
+	)
+
+	// Prefix all application metrics.
+	appReg := prometheus.WrapRegistererWithPrefix("realworld_", reg)
 	buildInfo := prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: appName,
-			Name:      "build_info",
-			Help:      "A metric with a constant '1' value labeled by version, branch and revision",
+			Name: "build_info",
+			Help: "A metric with a constant '1' value labeled by version, branch and revision",
 			ConstLabels: prometheus.Labels{
 				"branch":   appBranch,
 				"revision": appRevision,
@@ -28,19 +33,15 @@ func main() {
 		},
 	)
 	buildInfo.Set(1)
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(
-		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
-		prometheus.NewGoCollector(),
-		buildInfo,
-	)
-	r := router.New(reg, appName)
+	appReg.MustRegister(buildInfo)
+
+	r := router.New(reg)
 	v1 := r.Group("/api")
 
 	d := db.New()
 	db.AutoMigrate(d)
 
-	m := metrics.NewStoreMetrics(reg, appName)
+	m := metrics.NewStoreMetrics(appReg)
 	us := metrics.NewUserStore(store.NewUserStore(d), m)
 	as := metrics.NewArticleStore(store.NewArticleStore(d), m)
 	h := handler.NewHandler(us, as)
