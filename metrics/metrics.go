@@ -56,6 +56,7 @@ func NewStoreMetrics(r prometheus.Registerer) *StoreMetrics {
 		duration: duration,
 	}
 }
+
 func (m *StoreMetrics) wrapRequest(op string, f func() bool) {
 	now := time.Now()
 	m.total.WithLabelValues(op).Inc()
