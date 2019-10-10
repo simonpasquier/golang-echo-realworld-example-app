@@ -11,11 +11,28 @@ import (
 
 const appName = "realworld"
 
+// These variables are injected at build time.
+var appVersion, appRevision, appBranch string
+
 func main() {
+	buildInfo := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: appName,
+			Name:      "build_info",
+			Help:      "A metric with a constant '1' value labeled by version, branch and revision",
+			ConstLabels: prometheus.Labels{
+				"branch":   appBranch,
+				"revision": appRevision,
+				"version":  appVersion,
+			},
+		},
+	)
+	buildInfo.Set(1)
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
 		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
 		prometheus.NewGoCollector(),
+		buildInfo,
 	)
 	r := router.New(reg, appName)
 	v1 := r.Group("/api")
