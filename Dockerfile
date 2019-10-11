@@ -1,56 +1,24 @@
-#
-# 1. Build Container
-#
-FROM golang:1.12.1 AS build
-
-ENV GO111MODULE=on \
-    GOOS=linux \
-    GOARCH=amd64
-
-RUN mkdir -p /src
-
-# First add modules list to better utilize caching
-COPY go.sum go.mod /src/
+#FROM registry.access.redhat.com/ubi8/ubi AS build
+FROM golang:1.13 AS build
 
 WORKDIR /src
-
-# Download dependencies
-RUN go mod download
-
 COPY . /src
 
-# Build components.
-# Put built binaries and runtime resources in /app dir ready to be copied over or used.
-RUN go install -installsuffix cgo -ldflags="-w -s" && \
-    mkdir -p /app && \
-    cp -r $GOPATH/bin/golang-echo-realworld-example-app /app/
+#RUN dnf -y install golang sqlite make git
+RUN apt-get -y install libsqlite3-0 make git
+RUN GO111MODULE=on go mod download
+RUN GO111MODULE=on make build
 
-#
-# 2. Runtime Container
-#
-FROM alpine
-
-LABEL maintainer="Sina Saeidi <xesina@gmail.com>"
-
-ENV TZ=Asia/Tehran \
-    PATH="/app:${PATH}"
-
-RUN apk add --update --no-cache \
-    sqlite \
-    tzdata \
-    ca-certificates \
-    bash \
-    && \
-    cp --remove-destination /usr/share/zoneinfo/${TZ} /etc/localtime && \
-    echo "${TZ}" > /etc/timezone
-
-# See http://stackoverflow.com/questions/34729748/installed-go-binary-not-found-in-path-on-alpine-linux-docker
-RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
+#FROM registry.access.redhat.com/ubi8/ubi-minimal
+#FROM debian:latest
+FROM golang:1.13
 
 WORKDIR /app
+COPY --from=build /src/golang-echo-realworld-example-app /app/
 
-COPY --from=build /app /app/
+#RUN microdnf install sqlite
+#RUN apt-get update && apt-get install -y libsqlite3-0 && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 8585
 
-CMD ["./golang-echo-realworld-example-app"]
+ENTRYPOINT "/app/golang-echo-realworld-example-app"
