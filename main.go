@@ -46,5 +46,5 @@ func main() {
 	as := metrics.NewArticleStore(store.NewArticleStore(d), m)
 	h := handler.NewHandler(us, as)
 	h.Register(v1)
-	r.Logger.Fatal(r.Start("127.0.0.1:8585"))
+	r.Logger.Fatal(r.Start(":8585"))
 }
