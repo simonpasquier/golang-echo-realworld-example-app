@@ -11,10 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// A fixed value set in the echo context to avoid collecting duration for the /metrics endpoint.
-const skipDurationMetric = "_skipDurationMetric"
-
-func New(reg *prometheus.Registry) *echo.Echo {
+func New(reg *prometheus.Registry, mws ...echo.MiddlewareFunc) *echo.Echo {
 	duration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
@@ -32,7 +29,8 @@ func New(reg *prometheus.Registry) *echo.Echo {
 		return func(c echo.Context) error {
 			now := time.Now()
 			err := next(c)
-			if skip := c.Get(skipDurationMetric); skip == nil {
+			// Don't track duration metric for /metrics.
+			if c.Path() != "/metrics" {
 				duration.WithLabelValues(strconv.Itoa(c.Response().Status), c.Request().Method).Observe(time.Since(now).Seconds())
 			}
 			return err
@@ -44,9 +42,10 @@ func New(reg *prometheus.Registry) *echo.Echo {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
 	}))
+	e.Use(mws...)
+
 	e.GET("/metrics",
 		func(c echo.Context) error {
-			c.Set(skipDurationMetric, &struct{}{})
 			promhttp.InstrumentMetricHandler(
 				reg,
 				promhttp.HandlerFor(reg, promhttp.HandlerOpts{}),
