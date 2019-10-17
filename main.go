@@ -122,8 +122,8 @@ func main() {
 	}
 	fault := newFaultMiddleware(errRatio, delayRatio, delay)
 
-	r := router.New(reg, fault.Process)
-	v1 := r.Group("/api")
+	r := router.New(reg)
+	v1 := r.Group("/api", fault.Process)
 
 	d := db.New()
 	db.AutoMigrate(d)

@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func New(reg *prometheus.Registry, mws ...echo.MiddlewareFunc) *echo.Echo {
+func New(reg *prometheus.Registry) *echo.Echo {
 	duration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
@@ -42,7 +42,6 @@ func New(reg *prometheus.Registry, mws ...echo.MiddlewareFunc) *echo.Echo {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
 	}))
-	e.Use(mws...)
 
 	e.GET("/metrics",
 		func(c echo.Context) error {
