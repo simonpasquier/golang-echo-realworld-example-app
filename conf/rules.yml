@@ -1,0 +1,51 @@
+groups:
+- name: General
+  rules:
+  - alert: TargetDown
+    expr: max_over_time(up[1m]) == 0
+    labels:
+      severity: critical
+    annotations:
+      summary: "Target is down"
+      description: "Target {{ $labels.job }}/{{ $labels.instance }} is down for more than 1 minute."
+- name: Realworld
+  rules:
+  - alert: FrontendDown
+    expr: max_over_time(nginx_up[1m]) == 0
+    labels:
+      severity: critical
+    annotations:
+      summary: "Frontend server down"
+      description: "The nginx server is down for more than 1 minute."
+  - alert: HttpErrors
+    expr: rate(http_request_duration_seconds_count{code=~"5.."}[2m]) / ignoring(code) sum without(code) (rate(http_request_duration_seconds_count[2m])) > 0
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "HTTP errors detected"
+      description: "{{ $value | humanizePercentage }} of HTTP {{ $labels.method }} requests are getting 5xx responses."
+  - alert: HttpErrors
+    expr: rate(http_request_duration_seconds_count{code=~"5.."}[2m]) / ignoring(code) sum without(code) (rate(http_request_duration_seconds_count[2m])) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Too many HTTP errors detected"
+      description: "{{ $value | humanizePercentage }} of HTTP {{ $labels.method }} requests are getting 5xx responses."
+  - alert: SlowHttpResponses
+    expr: histogram_quantile(0.9, sum without(code,method) (rate(http_request_duration_seconds_bucket{code!~"4.."}[2m]))) > 0.5
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Slow HTTP responses"
+      description: "The 90th percentile of HTTP response time is greater than 500 milliseconds (current value: {{ $value | humanizeDuration }})."
+  - alert: SlowHttpResponses
+    expr: histogram_quantile(0.9, sum without(code,method) (rate(http_request_duration_seconds_bucket{code!~"4.."}[2m]))) > 1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Too slow HTTP responses"
+      description: "The 90th percentile of HTTP response time is greater than 1 second (current value: {{ $value | humanizeDuration }})."

@@ -1,0 +1,64 @@
+version: '3.3'
+
+services:
+
+  loadtest:
+    image: quay.io/simonpasquier/loadtest:latest
+    networks:
+    - realworld-demo
+    command: "-uri http://backend:8585/api/articles http://backend:8585/api/tags -concurrent 10 -rate 1"
+
+  backend:
+    image: quay.io/simonpasquier/golang-echo-realworld-example-app:latest
+    environment:
+      ERROR_RATIO: "0.15"
+      DELAY: 600ms
+    networks:
+    - realworld-demo
+    ports:
+    - "8585:8585"
+
+  frontend:
+    image: quay.io/simonpasquier/react-redux-realworld-example-app:latest
+    networks:
+    - realworld-demo
+    ports:
+    - "8000:80"
+
+  nginx_exporter:
+    image: nginx/nginx-prometheus-exporter:0.4.2
+    depends_on:
+    - frontend
+    networks:
+    - realworld-demo
+    command: "-nginx.scrape-uri http://frontend:80/basic_status -nginx.retries 5"
+
+  prometheus:
+    image: quay.io/prometheus/prometheus:latest
+    networks:
+    - realworld-demo
+    volumes:
+    - ./conf:/etc/prometheus/
+    ports:
+    - "9090:9090"
+    command: "--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.console.libraries=/usr/share/prometheus/console_libraries --web.console.templates=/usr/share/prometheus/consoles --web.enable-admin-api --web.enable-lifecycle"
+
+  alertmanager:
+    image: quay.io/prometheus/alertmanager:latest
+    networks:
+    - realworld-demo
+    volumes:
+    - ./conf:/etc/alertmanager/
+    ports:
+    - "9093:9093"
+    command: '--config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager --cluster.listen-address=""'
+
+  crochet:
+    image: quay.io/simonpasquier/crochet:latest
+    networks:
+    - realworld-demo
+    ports:
+    - "8080:8080"
+
+networks:
+  realworld-demo:
