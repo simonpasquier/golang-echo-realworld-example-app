@@ -16,7 +16,7 @@ func New(reg *prometheus.Registry) *echo.Echo {
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
 			Help:    "A histogram of latencies for HTTP requests.",
-			Buckets: []float64{.05, .1, .25, .5, .75, 1, 2, 5},
+			Buckets: []float64{.1, .2, .3, .4, .5, .7, .9, 1, 1.5, 3},
 		},
 		[]string{"code", "method"},
 	)
