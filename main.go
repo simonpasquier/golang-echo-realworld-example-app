@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -46,6 +47,9 @@ func (f *faultMiddleware) gotError() bool {
 }
 
 func (f *faultMiddleware) gotDelay() bool {
+	if f.delay <= 0 {
+		return false
+	}
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	return f.rand.Float64() < f.delayRatio
@@ -69,6 +73,10 @@ func (f *faultMiddleware) Process(next echo.HandlerFunc) echo.HandlerFunc {
 		f.addDelay()
 		return next(c)
 	}
+}
+
+func (f *faultMiddleware) String() string {
+	return fmt.Sprintf("mean error ratio=%f, mean delay ratio= %f, mean delay duration=%v", f.errRatio, f.delayRatio, time.Duration(f.delay))
 }
 
 func main() {
@@ -123,6 +131,7 @@ func main() {
 	fault := newFaultMiddleware(errRatio, delayRatio, delay)
 
 	r := router.New(reg)
+	r.Logger.Printf("fault injection: %s", fault.String())
 	v1 := r.Group("/api", fault.Process)
 
 	d := db.New()
