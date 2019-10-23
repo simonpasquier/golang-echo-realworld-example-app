@@ -49,3 +49,12 @@ groups:
     annotations:
       summary: "Too slow HTTP responses"
       description: "The 90th percentile of HTTP response time is greater than 1 second (current value: {{ $value | humanizeDuration }})."
+  - alert: DatabaseErrors
+    expr: rate(realworld_store_operations_failed_total[5m]) / rate(realworld_store_operations_total[5m]) > 0
+    for: 2m
+    labels:
+      severity: critical
+      team: db
+    annotations:
+      summary: "Database errors detected on {{ $labels.operation }}"
+      description: "{{ $value | humanizePercentage }} of {{ $labels.operation }} operations for instance {{ $labels.instance }} are failing. Check the status of the database server."
