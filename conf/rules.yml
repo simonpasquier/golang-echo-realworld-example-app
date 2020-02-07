@@ -26,7 +26,7 @@ groups:
       summary: "HTTP errors detected"
       description: "{{ $value | humanizePercentage }} of HTTP {{ $labels.method }} requests are getting 5xx responses."
   - alert: HttpErrors
-    expr: rate(http_request_duration_seconds_count{code=~"5.."}[2m]) / ignoring(code) sum without(code) (rate(http_request_duration_seconds_count[2m])) > 0.1
+    expr: rate(http_request_duration_seconds_count{code=~"5.."}[2m]) / ignoring(code) sum without(code) (rate(http_request_duration_seconds_count[2m])) > 0.05
     for: 2m
     labels:
       severity: critical
