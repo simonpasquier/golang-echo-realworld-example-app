@@ -2,21 +2,23 @@ package db
 
 import (
 	"fmt"
-
 	"os"
 
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+
 	"github.com/xesina/golang-echo-realworld-example-app/model"
 )
 
-func New(driver, datasource string) *gorm.DB {
+func New(driver, datasource string) (*gorm.DB, error) {
 	db, err := gorm.Open(driver, datasource)
 	if err != nil {
-		fmt.Println("storage err: ", err)
+		return nil, err
 	}
 	db.DB().SetMaxIdleConns(3)
 	db.LogMode(true)
-	return db
+	return db, nil
 }
 
 func TestDB() *gorm.DB {

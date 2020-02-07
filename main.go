@@ -168,7 +168,10 @@ func main() {
 		panic(fmt.Sprintf("unsupported database driver: %s", dbDriver))
 	}
 
-	d := db.New(dbDriver, datasource)
+	d, err := db.New(dbDriver, datasource)
+	if err != nil {
+		panic(err)
+	}
 	db.AutoMigrate(d)
 
 	m := metrics.NewStoreMetrics(appReg)
