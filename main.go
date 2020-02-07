@@ -141,6 +141,9 @@ func main() {
 	dbDriver, dbHost, dbPort, dbUser, dbPassword, dbName := os.Getenv("DB_DRIVER"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME")
 	if dbDriver == "" {
 		dbDriver = "sqlite3"
+		if dbName == "" {
+			dbName = ":memory:"
+		}
 	}
 	r.Logger.Infoj(map[string]interface{}{
 		"msg":      "database settings",
@@ -159,11 +162,7 @@ func main() {
 		}
 		datasource = fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s", dbHost, dbPort, dbUser, dbPassword, dbName)
 	case "sqlite3":
-		if dbName == "" {
-			dbName = ":memory:"
-		}
 		datasource = dbName
-		datasource = "./realworld.db"
 	default:
 		panic(fmt.Sprintf("unsupported database driver: %s", dbDriver))
 	}
