@@ -68,7 +68,7 @@ func (f *faultMiddleware) addDelay() {
 func (f *faultMiddleware) Process(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if f.gotError() {
-			return errors.New("got error")
+			return errors.New("got error (fault middleware)")
 		}
 		f.addDelay()
 		return next(c)
@@ -102,6 +102,7 @@ func main() {
 	buildInfo.Set(1)
 	appReg.MustRegister(buildInfo)
 
+	r := router.New(reg)
 	var (
 		errRatio   float64
 		delayRatio float64 = 1
@@ -128,13 +129,46 @@ func main() {
 			panic(err)
 		}
 	}
+	r.Logger.Infoj(map[string]interface{}{
+		"msg":          "fault inhection settings",
+		"error_ratio":  errRatio,
+		"delay_ration": delayRatio,
+		"delay":        delay,
+	})
 	fault := newFaultMiddleware(errRatio, delayRatio, delay)
-
-	r := router.New(reg)
-	r.Logger.Printf("fault injection: %s", fault.String())
 	v1 := r.Group("/api", fault.Process)
 
-	d := db.New()
+	dbDriver, dbHost, dbPort, dbUser, dbPassword, dbName := os.Getenv("DB_DRIVER"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME")
+	if dbDriver == "" {
+		dbDriver = "sqlite3"
+	}
+	r.Logger.Infoj(map[string]interface{}{
+		"msg":      "database settings",
+		"driver":   dbDriver,
+		"host":     dbHost,
+		"port":     dbPort,
+		"name":     dbName,
+		"user":     dbUser,
+		"password": "****",
+	})
+	var datasource string
+	switch dbDriver {
+	case "postgres":
+		if dbHost == "" || dbPort == "" || dbUser == "" || dbPassword == "" || dbName == "" {
+			panic("need to set DB_HOST, DB_PORT, DB_USER, DB_PASSWORD and DB_NAME environment variables")
+		}
+		datasource = fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s", dbHost, dbPort, dbUser, dbPassword, dbName)
+	case "sqlite3":
+		if dbName == "" {
+			dbName = ":memory:"
+		}
+		datasource = dbName
+		datasource = "./realworld.db"
+	default:
+		panic(fmt.Sprintf("unsupported database driver: %s", dbDriver))
+	}
+
+	d := db.New(dbDriver, datasource)
 	db.AutoMigrate(d)
 
 	m := metrics.NewStoreMetrics(appReg)

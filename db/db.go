@@ -6,12 +6,11 @@ import (
 	"os"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/xesina/golang-echo-realworld-example-app/model"
 )
 
-func New() *gorm.DB {
-	db, err := gorm.Open("sqlite3", "./realworld.db")
+func New(driver, datasource string) *gorm.DB {
+	db, err := gorm.Open(driver, datasource)
 	if err != nil {
 		fmt.Println("storage err: ", err)
 	}
